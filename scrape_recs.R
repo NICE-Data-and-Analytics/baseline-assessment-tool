@@ -2,35 +2,47 @@ library(tidyverse)
 library(xml2)
 library(rvest)
 library(rlang)
+library(installr)
 
 rec_url <- "https://www.nice.org.uk/guidance/ng205/chapter/Recommendations"
 rec_html <- read_html(rec_url)
 
-section_name_fn <- function(id, html) {
-    css <- sprintf("div#%s h3", id)
+# Get section name
+section_name_fn <- function(section_id, html) {
+    css <- sprintf("div#%s h3", section_id)
     
     html %>% 
-        html_elements(css) %>% 
+        html_element(css) %>% 
         html_text2() %>% 
         str_trim()
 }
 
-subsection_name_fn <- function(id, html) {
-    css <- paste0("#", id, " h4.title")
+# Get subsection name
+subsection_name_fn <- function(subsection_id, html) {
+    css <- paste0("#", subsection_id, " h4.title")
     
     html %>% 
         html_elements(css) %>% 
         html_text2()
 }
 
+# Get all subsections in section
 subsection_fn <- function(section_id, html) {
     css <- sprintf("div#%s div.section", section_id)
     
-    html %>% 
-        html_elements(subsection_css) %>% 
+    subsection_table <- html %>% 
+        html_elements(css) %>% 
         html_attr("id") %>% 
         tibble(id = .) %>% 
-        mutate(title = map_chr(id, subsection_name_fn, rec_html))
+        # Get subsection name
+        mutate(title = map_chr(id, subsection_name_fn, html))
+    
+    if (nrow(subsection_table) == 0) {
+        subsection_table <- tibble(id = section_id,
+                                   title = "No subsections")
+    }
+    
+    return(subsection_table)
 }
 
 
@@ -47,18 +59,18 @@ rec_fn <- function(id, html) {
 }
 
 rec_number_fn <- function(id, html) {
-    rec_number_css <- sprintf("div#%s span.paragraph-number", id)
+    css <- sprintf("div#%s span.paragraph-number", id)
     
     html %>% 
-        html_element(rec_number_css) %>% 
+        html_element(css) %>% 
         html_text2()
 }
 
 chunk_fn <- function(id, html) {
-    rec_css <- paste0("div#", id)
+    css <- paste0("div#", id)
     
     html %>% 
-        html_elements(rec_css) %>% 
+        html_elements(css) %>% 
         html_children() %>% 
         as.character()
 }
@@ -89,11 +101,14 @@ format_fn <- function(chunk) {
 }
 
 section_id <- rec_html %>% 
+    # Get section IDs, e.g. "ng205_1.2-supporting-positive-relationships"
     html_elements("div.chapter > div.section") %>% 
     html_attr("id") %>% 
     str_replace_all("\\.", "\\\\.") %>% 
     tibble(id = .) %>% 
-    mutate(name = map(id, section_name_fn, rec_html)) %>% 
+    # Get section names, e.g. "1.2 Supporting positive relationships"
+    mutate(name = map_chr(id, section_name_fn, rec_html)) %>%
+    # Keep only recommendation sections
     filter(str_starts(name, '\\d')) %>% 
     mutate(subsection = map(id, subsection_fn, rec_html))
 
@@ -107,7 +122,8 @@ section_id <- section_id %>%
                                                   ~ .x %>%
                                                       mutate(number = map_chr(id, rec_number_fn, rec_html),
                                                              chunk = map(id, chunk_fn, rec_html) %>% 
-                                                                 map(. %>% map(format_fn)))))))
+                                                                 map(. %>% map(format_fn))))))) %>% 
+    unnest()
 
 
 html_children(section_recs)
