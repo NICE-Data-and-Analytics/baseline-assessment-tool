@@ -1,11 +1,31 @@
+---
+title: "Scrape BATs"
+author: "Impact team"
+date: "`r Sys.Date()`"
+output: 
+    html_document:
+        code_folding: "hide"
+        toc: TRUE
+        toc_float: TRUE
+        number_sections: TRUE
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
 library(tidyverse)
 library(xml2)
 library(rvest)
 library(rlang)
+library(kableExtra)
+library(openxlsx)
 
-rec_url <- "https://www.nice.org.uk/guidance/ng205/chapter/Recommendations"
-rec_html <- read_html(rec_url)
+```
 
+# Declare functions
+
+```{r section_name}
+# SECTION FUNCTIONS
 # Get section name
 section_name_fn <- function(section_id, html) {
     css <- sprintf("#%s h3", section_id)
@@ -16,13 +36,15 @@ section_name_fn <- function(section_id, html) {
         str_trim()
 }
 
+# SUBSECTION FUNCTIONS
 # Get subsection name
 subsection_name_fn <- function(subsection_id, html) {
     css <- sprintf("#%s h4.title", subsection_id)
     
     html %>% 
         html_elements(css) %>% 
-        html_text2()
+        html_text2() %>% 
+        str_trim()
 }
 
 # Get all subsections in section
@@ -45,8 +67,8 @@ subsection_fn <- function(section_id, html) {
     return(subsection_table)
 }
 
-
-
+# RECOMMENDATION FUNCTIONS
+# Get recommendation html IDs
 rec_fn <- function(subsection_id, html) {
     css <- sprintf("#%s div.recommendation_text", subsection_id)
     
@@ -58,6 +80,7 @@ rec_fn <- function(subsection_id, html) {
     return(table)
 }
 
+# Get recommendation number
 rec_number_fn <- function(rec_id, html) {
     css <- sprintf("#%s span.paragraph-number", rec_id)
     
@@ -66,7 +89,8 @@ rec_number_fn <- function(rec_id, html) {
         html_text2()
 }
 
-chunk_fn <- function(rec_id, html) {
+# Get recommendation text
+rec_text_fn <- function(rec_id, html) {
     css <- paste0("#", rec_id)
     
     html %>% 
@@ -75,9 +99,10 @@ chunk_fn <- function(rec_id, html) {
         as.character()
 }
 
-format_fn <- function(chunk) {
-    if (str_detect(chunk, '^<p class=\"numbered-paragraph\">')) {
-        chunk %>% 
+# Format text
+format_fn <- function(rec_text) {
+    if (str_detect(rec_text, '^<p class=\"numbered-paragraph\">')) {
+        rec_text %>% 
             str_remove('^<p class=\"numbered-paragraph\">') %>% 
             str_remove('(<span class=\"paragraph-number\">)[^>]+(</span>)') %>% 
             str_remove_all('(<a id=\")[^>]+("></a>)') %>% 
@@ -87,8 +112,8 @@ format_fn <- function(chunk) {
             str_remove_all('\n|\r') %>% 
             str_trim()
         
-    } else if (str_detect(chunk, '^<div class=\"itemizedlist indented\">')) {
-        chunk %>% 
+    } else if (str_detect(rec_text, '^<div class=\"itemizedlist indented\">')) {
+        rec_text %>% 
             str_remove_all('(<a id=\")[^>]+("></a>)') %>% 
             str_remove_all('(<a class=\"link\")[^>]+(>)') %>% 
             str_remove_all('</a>') %>% 
@@ -99,7 +124,15 @@ format_fn <- function(chunk) {
             paste("\n\u2022 ", ., collapse = "")
     }
 }
+```
 
+# Scrape
+```{r}
+rec_url <- "https://www.nice.org.uk/guidance/ng205/chapter/Recommendations"
+rec_html <- read_html(rec_url)
+```
+
+```{r}
 section_id <- rec_html %>% 
     # Get html IDs for all sections, e.g. "ng205_1.2-supporting-positive-relationships"
     html_elements("div.chapter > div.section") %>% 
@@ -113,22 +146,67 @@ section_id <- rec_html %>%
     # Get html ID and name of all subsections in that section
     mutate(subsection = map(id, subsection_fn, rec_html))
 
+glimpse(section_id)
+```
+
+```{r}
 section_id <- section_id %>% 
     # Get html IDs for all recommendations in a subsection
     mutate(subsection = map(subsection,
                             ~ .x %>%
-                                mutate(recs = map(id, rec_fn, rec_html)))) %>%
+                                mutate(rec = map(id, rec_fn, rec_html)))) %>%
     # 
     mutate(subsection = map(subsection,
                             ~ .x %>%
-                                mutate(recs = map(recs, 
+                                mutate(rec = map(rec, 
                                                   ~ .x %>%
                                                       mutate(number = map_chr(id, rec_number_fn, rec_html),
-                                                             chunk = map(id, chunk_fn, rec_html) %>% 
-                                                                 map(. %>% map(format_fn))))))) %>% 
-    unnest()
+                                                             text = map(id, rec_text_fn, rec_html) %>% 
+                                                                 map(. %>% 
+                                                                         map(format_fn) %>% 
+                                                                         as.character() %>% 
+                                                                         str_c(collapse = "")))))))
 
+glimpse(section_id)
 
-html_children(section_recs)
-xml_structure(section_recs)
-# xml2::as_list(section_recs)
+```
+
+```{r}
+unnested <- section_id %>% 
+    unnest(subsection,
+           names_sep = "_") %>% 
+    rename(rec = subsection_rec) %>% 
+    unnest(rec,
+           names_sep = "_")
+
+kbl(unnested) %>% 
+    kable_styling() %>% 
+    scroll_box(width = "100%", height = "800px")
+```
+
+```{r}
+wb <- createWorkbook()
+# options("openxlsx.wrapText" = TRUE)
+addWorksheet(wb, "main")
+
+writeDataTable(wb, "main", unnested)
+
+addStyle(wb, "main",
+         createStyle(wrapText = TRUE),
+         rows = 1:nrow(unnested),
+         cols = 1:ncol(unnested),
+         gridExpand = TRUE)
+
+saveWorkbook(wb, "test.xlsx", overwrite = TRUE)
+```
+
+```{r}
+null_text <- unnested %>% 
+    filter(str_detect(rec_text, "NULL")) %>% 
+    select(rec_number, rec_text)
+
+kbl(null_text) %>% 
+    kable_styling() %>% 
+    scroll_box(width = "100%", height = "800px")
+```
+
