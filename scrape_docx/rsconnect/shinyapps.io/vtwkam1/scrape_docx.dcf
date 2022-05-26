@@ -1,0 +1,11 @@
+name: scrape_docx
+title:
+username:
+account: vtwkam1
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 6378329
+bundleId: 5947765
+url: https://vtwkam1.shinyapps.io/scrape_docx/
+when: 1653577237.22202
+lastSyncTime: 1653577237.22202
