@@ -38,6 +38,7 @@ ui <- fluidPage(
                  p("4. Copy and paste from downloaded spreadsheet into BAT template."),
                  tags$ul(
                      tags$li("Check for errors in the extracted text"),
+                     tags$li("Check hyphenated words, e.g. 'omega-3' - the hyphen is often lost when pulled"),
                      tags$li(HTML("Add <b>bold formatting</b> to the text as needed - formatting is not preserved in the extraction"))
                  )
         ),
