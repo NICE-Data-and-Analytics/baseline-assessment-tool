@@ -9,6 +9,11 @@ scrape_docx <- function(doc) {
   # Where recommendations end
   rec_end <- which(str_detect(content$text, "Terms used in this guideline") & content$style_name == "heading 2") - 1
   
+  if (is_empty(rec_end)) {
+      # Use 'Recommendations for research' if nothing found for 'Terms used in this guideline'
+      rec_end <- which(str_detect(content$text, "Recommendations for research") & content$style_name == "heading 1") - 1
+  }
+  
   # Manipulate text
   recommendations <- content %>% 
       # Only keep rows with recommendations
