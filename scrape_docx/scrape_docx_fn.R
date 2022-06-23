@@ -87,7 +87,9 @@ scrape_docx <- function(doc) {
       mutate(rec_year = str_extract(text, "(?<=\\[)\\d{4}.*(?=\\])") %>% 
                  str_remove("\\[|\\]"), 
              text = str_remove(text, "\\[\\d{4}.*\\]$") %>% 
-                 str_trim())
+                 str_trim()) %>% 
+      # Remove hyperlinks
+      mutate(text = str_remove_all(text, ' HYPERLINK(  \\\\l)? "[:graph:]+" '))
   
   # Create a Workbook object
   wb <- createWorkbook()
