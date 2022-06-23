@@ -23,14 +23,19 @@ scrape_docx <- function(doc) {
       # Remove panels, which contain text on the evidence and rationale behind recs
       filter(style_name != "Panel (Default)",
              # Remove rows with no text
-             !is.na(text)) %>% 
+             !is.na(text),
+             # Remove table cells
+             content_type != "table cell") %>% 
       # Drop unnecessary columns
       select(!level:row_span) %>%
-      # docx_summary() function splits out the last bullet point as a different style, for some reason
-      # Change to regular bullet
-      mutate(style_name = if_else(style_name == "Bullet indent 1 last",
-                                  "Bullet indent 1",
-                                  style_name)) %>% 
+      # docx_summary() function splits out the last bullet point as a different style, for some reason, e.g. "Bullet indent 1 last"
+      # Some bullet indent styles also named differently, e.g. "Bullet indent 1 shaded"
+      # Unify styles
+      mutate(style_name = case_when(str_starts(style_name, "Bullet indent 1") ~ "Bullet indent 1",
+                                    str_starts(style_name, "Bullet indent 2") ~ "Bullet indent 2",
+                                    # For updates, some recs given different style
+                                    style_name == "Recommendation not updated" ~ "Numbered level 3 text",
+                                    TRUE ~ style_name)) %>%
       group_by(style_name) %>% 
       # Number the sections
       # For rows which aren't section headers, give it an NA instead
@@ -60,6 +65,7 @@ scrape_docx <- function(doc) {
                                     style_name == 'heading 4' ~ "Subsubheading",
                                     style_name == 'NICE normal' | str_starts(style_name, "Bullet left") ~ "Text",
                                     style_name == "Panel (Primary)" ~ "Panel",
+                                    style_name == "caption" ~ "Caption",
                                     TRUE ~ rec_number)) %>% 
       # Add a bullet point symbol to the beginning of the string for bullet point text
       mutate(text = case_when(style_name == "Bullet indent 1" ~ paste0("\u2022 ", text),
@@ -67,11 +73,16 @@ scrape_docx <- function(doc) {
                               TRUE ~ text)) %>% 
       group_by(rec_number) %>% 
       # Merge the bullet points under each recommendation (which are currently in separate rows) with the recommendation 
-      mutate(text = if_else(style_name %in% c("Bullet indent 1", "Numbered level 3 text", "Bullet indent 2"),
+      mutate(text = if_else(style_name %in% c("Bullet indent 1", 
+                                              "Numbered level 3 text", 
+                                              "Bullet indent 2",
+                                              # In some docs, this is the style for additional paragraphs of the rec below bullet points
+                                              "NICE normal indented"),
                             paste(text, collapse = "\n"),
                             text) %>% str_trim()) %>% 
-      # Drop the bullet point rows (which have still remained as separate rows) from the merge above
-      filter(!str_starts(style_name, "Bullet indent")) %>% 
+      # Drop the bullet point and additional paragraph rows (which have still remained as separate rows) from the merge above
+      filter(!str_starts(style_name, "Bullet indent"),
+             style_name != "NICE normal indented") %>% 
       # Extract the year of publishing/updating into a separate column
       mutate(rec_year = str_extract(text, "(?<=\\[)\\d{4}.*(?=\\])") %>% 
                  str_remove("\\[|\\]"), 
