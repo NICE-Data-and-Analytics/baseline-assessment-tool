@@ -20,20 +20,23 @@ library(openxlsx)
 ```
 
 ```{r}
-doc <- read_docx("./data/NG224 Guideline final.docx")
+doc <- read_docx("./data/NG164 Guideline 20220722_final for publication.docx")
 
 # Reads the uploaded Word doc and returns a data.frame splitting out all the elements of the document
 content <- docx_summary(doc)
   
 # Identify row number where the recommendations start
 # Specifically, this picks up the first section heading, e.g. "1.1 Safety"
-rec_start <-  which(str_detect(content$style_name, "Numbered heading 2"))[[1]]
+rec_start <-  which(str_detect(content$style_name, "(Numbered )?heading 2"))[[1]]
   
 # Where recommendations end
 rec_end <- which(str_detect(content$text, "Terms used in this guideline") & content$style_name == "heading 2") - 1
 
 if (is_empty(rec_end)) {
     rec_end <- which(str_detect(content$text, "Recommendations for research") & content$style_name == "heading 1") - 1
+    if(is_empty(rec_end)) {
+        rec_end <- which(str_detect(content$text, "Update information") & content$style_name == "heading 1") - 1
+    }
 }
 
 # Manipulate text
@@ -49,15 +52,15 @@ recommendations <- content %>%
            # Remove table cells
            content_type != "table cell") %>% 
     # Drop unnecessary columns
-    select(!level:row_span) %>%
+    select(!level:last_col()) %>%
     # docx_summary() function splits out the last bullet point as a different style, for some reason, e.g. "Bullet indent 1 last"
     # Some bullet indent styles also named differently, e.g. "Bullet indent 1 shaded"
     # Unify styles
     mutate(style_name = case_when(str_starts(style_name, "Bullet indent 1") ~ "Bullet indent 1",
                                   str_starts(style_name, "Bullet indent 2") ~ "Bullet indent 2",
-                                  # For updates, some recs given different style
-                                  style_name == "Recommendation not updated" ~ "Numbered level 3 text",
-                                  TRUE ~ style_name)) %>%
+                               # For updates, some recs given different style
+                               style_name == "Recommendation not updated" ~ "Numbered level 3 text",
+                               TRUE ~ style_name)) %>%
     group_by(style_name) %>% 
     # Number the sections
     # For rows which aren't section headers, give it an NA instead
@@ -89,29 +92,33 @@ recommendations <- content %>%
                                   style_name == "Panel (Primary)" ~ "Panel",
                                   style_name == "caption" ~ "Caption",
                                   TRUE ~ rec_number)) %>% 
-    # Add a bullet point symbol to the beginning of the string for bullet point text
-    mutate(text = case_when(style_name == "Bullet indent 1" ~ paste0("\u2022 ", text),
-                            style_name == "Bullet indent 2" ~ paste0("    - ", text),
-                            TRUE ~ text)) %>% 
-    group_by(rec_number) %>% 
-    # Merge the bullet points under each recommendation (which are currently in separate rows) with the recommendation 
-    mutate(text = if_else(style_name %in% c("Bullet indent 1", 
-                                            "Numbered level 3 text", 
-                                            "Bullet indent 2",
-                                            # In some docs, this is the style for additional paragraphs of the rec below bullet points
-                                            "NICE normal indented"),
-                          paste(text, collapse = "\n"),
-                          text) %>% str_trim()) %>% 
-    # Drop the bullet point and additional paragraph rows (which have still remained as separate rows) from the merge above
-    filter(!str_starts(style_name, "Bullet indent"),
-           style_name != "NICE normal indented") %>% 
-    # Extract the year of publishing/updating into a separate column
-    mutate(rec_year = str_extract(text, "(?<=\\[)\\d{4}.*(?=\\])") %>% 
-               str_remove("\\[|\\]"), 
-           text = str_remove(text, "\\[\\d{4}.*\\]$") %>% 
-               str_trim()) %>% 
-    # Remove hyperlinks
-      mutate(text = str_remove_all(text, ' HYPERLINK(  \\\\l)? "[:graph:]+" '))
+      # Add a bullet point symbol to the beginning of the string for bullet point text
+      mutate(text = case_when(style_name == "Bullet indent 1" ~ paste0("\u2022 ", text),
+                              style_name == "Bullet indent 2" ~ paste0("    - ", text),
+                              TRUE ~ text)) %>% 
+      group_by(rec_number) %>% 
+      # Merge the bullet points under each recommendation (which are currently in separate rows) with the recommendation 
+      mutate(text = if_else(style_name %in% c("Bullet indent 1", 
+                                              "Numbered level 3 text", 
+                                              "Bullet indent 2",
+                                              # In some docs, this is the style for additional paragraphs of the rec below bullet points
+                                              "NICE normal indented"),
+                            paste(text, collapse = "\n"),
+                            text) %>% str_trim()) %>% 
+      # Drop the bullet point and additional paragraph rows (which have still remained as separate rows) from the merge above
+      filter(!str_starts(style_name, "Bullet indent"),
+             style_name != "NICE normal indented") %>% 
+      # Extract the year of publishing/updating into a separate column
+      mutate(rec_year = str_extract(text, "(?<=\\[)\\d{4}.*(?=\\])") %>% 
+                 str_remove("\\[|\\]"), 
+             text = str_remove(text, "\\[\\d{4}.*\\]$") %>% 
+                 str_trim()) %>% 
+      # Remove hyperlinks
+      mutate(text = str_remove_all(text, ' HYPERLINK(  \\\\l)? "[:graph:]+" ')) %>% 
+      # Add heading number
+      mutate(text = if_else(rec_number == "Heading", 
+                            paste(section, text, sep = " "), 
+                            text))
 
 
 ```
