@@ -23,7 +23,7 @@ scrape_docx <- function(doc) {
         # Replace empty strings with NAs
         mutate(text = na_if(text, "")) %>% 
         # Remove panels, which contain text on the evidence and rationale behind recs
-        filter(style_name != "Panel (Default)",
+        filter(!(style_name %in% c("Panel (Default)", "NICE normal single spacing")),
                # Remove rows with no text
                !is.na(text),
                # Remove table cells
