@@ -4,7 +4,7 @@ scrape_docx <- function(doc) {
     
     # Identify row number where the recommendations start
     # Specifically, this picks up the first section heading, e.g. "1.1 Safety"
-    rec_start <-  which(str_detect(content$style_name, "(Numbered )?heading 2"))[[1]]
+    rec_start <-  which(str_detect(content$style_name, "Numbered heading 2"))[[1]]
     
     # Where recommendations end
     rec_end <- which(str_detect(content$text, "Terms used in this guideline") & content$style_name == "heading 2") - 1

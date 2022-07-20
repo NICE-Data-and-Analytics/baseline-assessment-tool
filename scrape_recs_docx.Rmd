@@ -20,14 +20,14 @@ library(openxlsx)
 ```
 
 ```{r}
-doc <- read_docx("./data/NG164 Guideline 20220722_final for publication.docx")
+doc <- read_docx("./data/NG14 Guidance 20220727.docx")
 
 # Reads the uploaded Word doc and returns a data.frame splitting out all the elements of the document
 content <- docx_summary(doc)
   
 # Identify row number where the recommendations start
 # Specifically, this picks up the first section heading, e.g. "1.1 Safety"
-rec_start <-  which(str_detect(content$style_name, "(Numbered )?heading 2"))[[1]]
+rec_start <-  which(str_detect(content$style_name, "Numbered heading 2"))[[1]]
   
 # Where recommendations end
 rec_end <- which(str_detect(content$text, "Terms used in this guideline") & content$style_name == "heading 2") - 1
