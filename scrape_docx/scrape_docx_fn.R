@@ -7,7 +7,7 @@ scrape_docx <- function(doc) {
     rec_start <-  which(str_detect(content$style_name, "Numbered heading 2"))[[1]]
     
     # Where recommendations end
-    rec_end <- which(str_detect(content$text, "Terms used in this guideline") & str_detect(content$style_name, "heading (1|2)")) - 1
+    rec_end <- which(str_detect(content$text, "Terms used in this guideline") & str_detect(content$style_name, "heading [12]")) - 1    
     
     if (is_empty(rec_end)) {
         rec_end <- which(str_detect(content$text, "Recommendations for research") & content$style_name == "heading 1") - 1
@@ -91,7 +91,9 @@ scrape_docx <- function(doc) {
                text = str_remove(text, "\\[\\d{4}.*\\]$") %>% 
                    str_trim()) %>% 
         # Remove hyperlinks
-        mutate(text = str_remove_all(text, ' HYPERLINK(  \\\\l)? "[:graph:]+" ')) %>% 
+        mutate(text = str_remove_all(text, ' HYPERLINK(  \\\\l)? "[:graph:]+" ')) %>%
+        # Remove REF thing
+        mutate(text = str_remove_all(text, ' REF.+MERGEFORMAT ') %>% str_trim()) %>% 
         # Add heading number
         mutate(text = if_else(rec_number == "Heading", 
                               paste(section, text, sep = " "), 
