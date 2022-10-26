@@ -7,7 +7,7 @@ scrape_docx <- function(doc) {
     rec_start <-  which(str_detect(content$style_name, "Numbered heading 2"))[[1]]
     
     # Where recommendations end
-    rec_end <- which(str_detect(content$text, "Terms used in this guideline") & content$style_name == "heading 2") - 1
+    rec_end <- which(str_detect(content$text, "Terms used in this guideline") & str_detect(content$style_name, "heading (1|2)")) - 1
     
     if (is_empty(rec_end)) {
         rec_end <- which(str_detect(content$text, "Recommendations for research") & content$style_name == "heading 1") - 1

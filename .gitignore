@@ -4,3 +4,6 @@
 .Ruserdata
 *.html
 data/
+output/
+rsconnect/
+scrape_docx/rsconnect/
