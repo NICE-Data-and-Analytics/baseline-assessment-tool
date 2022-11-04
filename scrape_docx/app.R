@@ -56,7 +56,7 @@ ui <- fluidPage(
     )
 )
 
-# 
+# Define server function
 server <- function(input, output, session) {
     
     # Read the uploaded DOCX file
