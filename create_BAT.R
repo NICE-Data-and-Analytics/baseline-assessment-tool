@@ -1,20 +1,32 @@
 
-
 library(dplyr)
 library(openxlsx)
 library(officer)
 
-guidance_content <- read_docx("NG226 Guideline 20221019.docx") %>% 
-        scrape_docx()
+# guidance_content <- read_docx("NG226 Guideline 20221019.docx") %>% 
+#         scrape_docx()
+# 
+# guidance_content <- readWorkbook(
+#                         guidance_content$wb,
+#                         sheet = 1,
+#                         startRow = 1,
+#                         colNames = TRUE,
+#                         rowNames = FALSE,
+#                         skipEmptyRows = TRUE,
+#                         skipEmptyCols = TRUE)
 
-guidance_content <- readWorkbook(
-                        guidance_content$wb,
-                        sheet = 1,
-                        startRow = 1,
-                        colNames = TRUE,
-                        rowNames = FALSE,
-                        skipEmptyRows = TRUE,
-                        skipEmptyCols = TRUE)
+scrape_title_and_dates <- function(doc){
+    
+    temp_df <- docx_summary(doc)
+    
+    temp <- temp_df %>% 
+        filter(style_name %in% c("Title 1", "Guidance issue date", "Document issue date")) %>% 
+        select(text) %>% 
+        pull() %>% 
+        str_trim()
+    
+    return(temp)
+}
 
 # Set up cell styles ---------------------------------------------------------
 
@@ -226,112 +238,24 @@ setRowHeights <- function(wb, sheet, rows, heights,
 
 # Create BAT --------------------------------------------------------------
 
-create_BAT <- function(guidance_number, guidance_title, published_date, guidance_content){
-    
-    ### Create all of the variables to drop into the BAT ###
-    
-    intro_title <- paste0("Baseline assessment tool for ", guidance_title, " (", guidance_number, ")")
-    intro_date <- paste0("Published: ", published_date)
-    
-    # Set up all the the formulas we need to drop into the spreadsheet
-    # These are all set up as tibbles because it is the only way I could get it to work!
-    
-    # Formula to create a hyperlink the the guidance
-    guidance_hyperlink <- tibble(
-        link = paste0(
-            "HYPERLINK(\"",
-            "https://www.nice.org.uk/guidance/", guidance_number,
-            "\", \"", guidance_title, "\")"))
-    
-    # Formula to create a hyperlink the the tools and resources tab
-    tools_hyperlink <- tibble(
-        link = paste0(
-            "HYPERLINK(\"",
-            "https://www.nice.org.uk/guidance/", guidance_number, "/resources",
-            "\", \"Tools and resources\")"))
-    
-    # Formula to create a hyperlink the the Notice of Rights
-    rights_hyperlink <- tibble(
-        link = paste0(
-            "HYPERLINK(\"",
-            "https://www.nice.org.uk/terms-and-conditions#notice-of-rights",
-            "\", \"Subject to Notice of rights\")"))
-    
-    # Set up the formulas to drop into the 'Data totals' tab
-    # These are set up to adjust the formula to the correct number of recommendations
-    datatotal_formulas <- tibble(
-        formula = c(paste0("=SUMPRODUCT(COUNTIF('Data sheet'!C3:C", nrow(guidance_content)+2, ",{\"Yes\",\"Partial\"}))"),
-                    paste0("=COUNTIF('Data sheet'!E3:E", nrow(guidance_content)+2, ",\"Yes\")"),
-                    paste0("=COUNTIF('Data sheet'!E3:E", nrow(guidance_content)+2, ",\"Partial\")")))
-    
-    # These need to be converted to a class of formula so that excel recognizes them
-    class(guidance_hyperlink$link) <- "formula"
-    class(tools_hyperlink$link) <- "formula"
-    class(rights_hyperlink$link) <- "formula"
-    class(datatotal_formulas$formula) <- "formula"
-    
-    ### Drop the content into the relevant cells and apply the appropriate cell styles ###
-    
-    wb <- loadWorkbook("BAT template.xlsx")
-    
-    writeData(wb, sheet = "Introduction", intro_title, startRow = 1, startCol = 1, colNames = FALSE)
-    addStyle(wb, sheet = "Introduction", intro_title_style, rows = 1, cols = 1, stack = FALSE)
-    
-    writeData(wb, sheet = "Data sheet", intro_title, startRow = 1, startCol = 1, colNames = FALSE)
-    addStyle(wb, sheet = "Data sheet", datasheet_title_style, rows = 1, cols = 1, stack = FALSE)
-    
-    writeData(wb, sheet = "Introduction", intro_date, startRow = 2, startCol = 1, colNames = FALSE)
-    addStyle(wb, sheet = "Introduction", intro_date_style, rows = 2, cols = 1, stack = FALSE)
-    
-    writeData(wb, sheet = "Data sheet", guidance_content, startRow = 3, startCol = 1, colNames = FALSE)
-    addStyle(wb, sheet = "Data sheet", header_style, rows = str_which(guidance_content$rec_number, "Heading")+2, cols = 1:12, stack = FALSE, gridExpand = TRUE)
-    addStyle(wb, sheet = "Data sheet", subheader_style, rows = str_which(guidance_content$rec_number, "Subheading")+2, cols = 1:12, stack = FALSE, gridExpand = TRUE)
-    addStyle(wb, sheet = "Data sheet", text_style, rows = str_which(guidance_content$rec_number, "[:digit:]")+2, cols = 1:12, stack = FALSE, gridExpand = TRUE)
-    addStyle(wb, sheet = "Data sheet", highlight_style, rows = which(guidance_content$rec_number == "Text")+2, cols = 1:12, stack = FALSE, gridExpand = TRUE)
-    addStyle(wb, sheet = "Data sheet", border_style, rows = str_which(guidance_content$rec_number, "[:digit:]|Text")+2, cols = 1:12, stack = TRUE, gridExpand = TRUE)
-    deleteData(wb, sheet = "Data sheet", cols = 2, rows = str_which(guidance_content$rec_number, "Heading|Subheading|Text")+2, gridExpand = TRUE)
-    
-    writeData(wb, sheet = "Introduction", guidance_hyperlink, startRow = 5, startCol = 1, colNames = FALSE)
-    writeData(wb, sheet = "Introduction", tools_hyperlink, startRow = 10, startCol = 1, colNames = FALSE)
-    writeData(wb, sheet = "Introduction", rights_hyperlink, startRow = 12, startCol = 1, colNames = FALSE)
-    addStyle(wb, sheet = "Introduction", hyperlink_style, rows = 5, cols = 1, stack = FALSE)
-    addStyle(wb, sheet = "Introduction", hyperlink_style, rows = 10, cols = 1, stack = TRUE)
-    addStyle(wb, sheet = "Introduction", hyperlink_style, rows = 12, cols = 1, stack = FALSE)
-    
-    #setRowHeights(wb, sheet = 2, rows = str_which(guidance_content$rec_number, "[:digit:]|Text")+2, heights = "auto", wrap = FALSE, base_height = 20, extra_height = 11)
-    dataValidation(wb, sheet = "Data sheet", rows = str_which(guidance_content$rec_number, "[:digit:]")+2, cols = c(3,5), type = "list", value = "'Dropdowns'!$A$1:$A$3")
-    dataValidation(wb, sheet = "Data sheet", rows = str_which(guidance_content$rec_number, "[:digit:]")+2, cols = 7, type = "list", value = "'Dropdowns'!$A$1:$A$2")
-    conditionalFormatting(wb, sheet = "Data sheet", rows = str_which(guidance_content$rec_number, "[:digit:]")+2, cols = 4:11, rule = '$C4="No"', style = createStyle(bgFill = "#BFBFBF"))
-    
-    writeData(wb, sheet = "Data sheet totals", datatotal_formulas, startRow = 1, startCol = 2, colNames = FALSE)
-    
-    ### Adjust the row heights in the data tab ###
-    
-    ### Save the complete BAT ###
-    
-    saveWorkbook(wb,"output.xlsx", overwrite = TRUE)
-}
-
-create_BAT(guidance_number = "NG226", 
-           guidance_title = "Osteoarthritis in over 16s: diagnosis and management",
-           published_date = "19 October 2022",
-           guidance_content = guidance_content)
-
-
-create_BAT <- function(guidance_number, guidance_title, published_date, guidance_content){
+create_BAT <- function(guidance_number, guidance_info, guidance_content){
     
     ### Create all of the variables to drop into the BAT ###
     # NOTE: Everything has to be in tibble or data frame format #
     
-    intro_title <- paste0("Baseline assessment tool for ", guidance_title, " (", guidance_number, ")")
-    intro_date <- paste0("Published: ", published_date)
+    intro_title <- paste0("Baseline assessment tool for ", guidance_info[[1]], " (", guidance_number, ")")
+    intro_published_date <- paste0("Published: ", guidance_info[[2]])
+    
+    if (length(guidance_info) == 3) {
+        intro_update_date <- paste0("Updated: ", guidance_info[[3]])
+    }
     
     # Formula to create a hyperlink to the guidance
     guidance_hyperlink <- tibble(
         link = paste0(
             "HYPERLINK(\"",
             "https://www.nice.org.uk/guidance/", guidance_number,
-            "\", \"", guidance_title, "\")"))
+            "\", \"", guidance_info[[1]], "\")"))
     
     # Formula to create a hyperlink the the tools and resources tab
     tools_hyperlink <- tibble(
@@ -365,7 +289,7 @@ create_BAT <- function(guidance_number, guidance_title, published_date, guidance
     wb <- loadWorkbook("BAT template.xlsx")
     
     writeData(wb, sheet = "Introduction", intro_title, startRow = 1, startCol = 1, colNames = FALSE)
-    writeData(wb, sheet = "Introduction", intro_date, startRow = 2, startCol = 1, colNames = FALSE)
+    writeData(wb, sheet = "Introduction", intro_published_date, startRow = 2, startCol = 1, colNames = FALSE)
     writeData(wb, sheet = "Introduction", guidance_hyperlink, startRow = 5, startCol = 1, colNames = FALSE)
     writeData(wb, sheet = "Introduction", tools_hyperlink, startRow = 10, startCol = 1, colNames = FALSE)
     writeData(wb, sheet = "Introduction", rights_hyperlink, startRow = 12, startCol = 1, colNames = FALSE)
@@ -373,6 +297,11 @@ create_BAT <- function(guidance_number, guidance_title, published_date, guidance
     writeData(wb, sheet = "Data sheet", guidance_content, startRow = 3, startCol = 1, colNames = FALSE)
     writeData(wb, sheet = "Data sheet totals", datatotal_formulas, startRow = 1, startCol = 2, colNames = FALSE)
     deleteData(wb, sheet = "Data sheet", cols = 2, rows = str_which(guidance_content$rec_number, "Heading|Subheading|Text")+2, gridExpand = TRUE)
+    
+    if (length(guidance_info) == 3) {
+        writeData(wb, sheet = "Introduction", intro_update_date, startRow = 3, startCol = 1, colNames = FALSE)
+        addStyle(wb, sheet = "Introduction", intro_date_style, rows = 3, cols = 1, stack = FALSE)
+    }
     
     ### Apply all of the appropriate styles ###
     
@@ -397,5 +326,11 @@ create_BAT <- function(guidance_number, guidance_title, published_date, guidance
     
     ### Save the complete BAT ###
     
-    saveWorkbook(wb,"output.xlsx", overwrite = TRUE)
+    return(wb)
+    #saveWorkbook(wb,"output.xlsx", overwrite = TRUE)
 }
+
+# create_BAT(guidance_number = "NG226",
+#            guidance_title = "Osteoarthritis in over 16s: diagnosis and management",
+#            published_date = "19 October 2022",
+#            guidance_content = guidance_content)

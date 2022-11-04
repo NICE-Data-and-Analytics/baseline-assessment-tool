@@ -6,6 +6,7 @@ library(shinyjs)
 
 # Load functions, defined in separate script
 source("./scrape_docx_fn.R")
+source("create_BAT.R")
 
 # Define UI 
 ui <- fluidPage(
@@ -72,6 +73,16 @@ server <- function(input, output, session) {
     # an Excel spreadsheet with the table (docs()$wb) - this is a Workbook object, part of the openxlsx package
     recs <- reactive(scrape_docx(docx()))
     
+    
+    # Run the custom function scrape_title_and_dates to get the guidance title,
+    # publication date, and update date
+    title_dates <- reactive(scrape_title_and_dates(docx()))
+    
+    # Run the custom function create_BAT to create the BAT
+    completed_BAT <- reactive(create_BAT(guidance_number = input$guideline_number,
+                                         guidance_info = title_dates(),
+                                         guidance_content = recs()))
+    
     # Enable download button once a file has been uploaded
     observeEvent(input$file, {
         enable("download")
@@ -85,7 +96,7 @@ server <- function(input, output, session) {
         },
         content = function(file) {
             # Save the Workbook object to a file
-            saveWorkbook(recs()$wb, file)
+            saveWorkbook(completed_BAT(), file)
         }
     )
     
