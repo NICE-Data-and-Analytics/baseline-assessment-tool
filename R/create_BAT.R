@@ -240,6 +240,15 @@ setRowHeights <- function(wb, sheet, rows, heights,
 
 create_BAT <- function(guidance_number, guidance_info, guidance_content){
     
+    
+    guidance_content <- readWorkbook(
+                                guidance_content,
+                                sheet = 1,
+                                startRow = 1,
+                                colNames = TRUE,
+                                rowNames = FALSE,
+                                skipEmptyRows = TRUE,
+                                skipEmptyCols = TRUE)
     ### Create all of the variables to drop into the BAT ###
     # NOTE: Everything has to be in tibble or data frame format #
     

@@ -5,8 +5,8 @@ library(officer)
 library(shinyjs)
 
 # Load functions, defined in separate script
-source("./scrape_docx_fn.R")
-source("create_BAT.R")
+source("R/scrape_docx_fn.R")
+source("R/create_BAT.R")
 
 # Define UI 
 ui <- fluidPage(
@@ -81,7 +81,7 @@ server <- function(input, output, session) {
     # Run the custom function create_BAT to create the BAT
     completed_BAT <- reactive(create_BAT(guidance_number = input$guideline_number,
                                          guidance_info = title_dates(),
-                                         guidance_content = recs()))
+                                         guidance_content = recs()$wb))
     
     # Enable download button once a file has been uploaded
     observeEvent(input$file, {
