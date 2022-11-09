@@ -74,8 +74,7 @@ server <- function(input, output, session) {
     recs <- reactive(scrape_docx(docx()))
     
     
-    # Run the custom function scrape_title_and_dates to get the guidance title,
-    # publication date, and update date
+    # Run scrape_title_and_dates to get the guidance title, publication date, and update date
     title_dates <- reactive(scrape_title_and_dates(docx()))
     
     # Run the custom function create_BAT to create the BAT
