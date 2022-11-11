@@ -6,15 +6,21 @@ library(officer)
 
 # Testing section ---------------------------------------------------------
 
-# doc <- read_docx("files/test_files/NG39Guideline.docx")
+# doc <- read_docx("files/test_files/NG122 Guideline 20220922.docx")
 # 
-# guidance_number <- "NG39"
+# guidance_number <- "NG122"
 # guidance_info <- scrape_title_and_dates(doc)
 # guidance_content <- scrape_docx(doc)
 # 
-# test <- create_BAT(guidance_number,
-#                    guidance_info,
-#                    guidance_content$wb)
+# guidance_content <- tibble(
+#     readWorkbook(
+#         guidance_content$wb,
+#         sheet = 1,
+#         startRow = 1,
+#         colNames = TRUE,
+#         rowNames = FALSE,
+#         skipEmptyRows = TRUE,
+#         skipEmptyCols = TRUE))
 # 
 # saveWorkbook(test,"output.xlsx", overwrite = TRUE)
 
@@ -82,34 +88,46 @@ hyperlink_style <- createStyle(
 
 create_BAT <- function(guidance_number, guidance_info, guidance_content){
     
-    
-    guidance_content <- readWorkbook(
+    # Read in the pre-scraped content from the guideline
+    guidance_content <- tibble(
+                            readWorkbook(
                                 guidance_content,
                                 sheet = 1,
                                 startRow = 1,
                                 colNames = TRUE,
                                 rowNames = FALSE,
                                 skipEmptyRows = TRUE,
-                                skipEmptyCols = TRUE)
+                                skipEmptyCols = TRUE))
+    
+    # Sort out the year of recommendation column. Whenever there is an NA next to a rec number 
+    # insert the original year of publication for the guideline
+    guidance_content <- guidance_content %>% 
+        filter(!rec_number %in% c("Panel", "Caption")) %>% 
+        mutate(rec_year = ifelse((is.na(rec_year) & !rec_number %in% c("Heading", "Subheading",
+                                                                       "Subsubheading", "Text")),
+                                 str_sub(guidance_info[2], -4,-1),
+                                 rec_year))
     
     ### Create all of the variables to drop into the BAT ###
-    # NOTE: Everything has to be in tibble or data frame format #
+    # NOTE: These are in individuals tibbles because they would not format correctly 
+    # when not in tibble format. They would also lose their formatting when all links
+    # were in a single tibble - no idea why though.
     
     intro_title <- paste0("Baseline assessment tool for ", 
-                          guidance_info[[1]],
+                          guidance_info[1],
                           " (", guidance_number, ")")
     
-    intro_published_date <- paste0("Published: ", guidance_info[[2]])
+    intro_published_date <- paste0("Published: ", guidance_info[2])
     
     if (length(guidance_info) == 3) {
-        intro_update_date <- paste0("Updated: ", guidance_info[[3]])
+        intro_update_date <- paste0("Updated: ", guidance_info[3])
     }
     
     # Formula to create a hyperlink to the guidance
     guidance_hyperlink <- tibble(
         link = paste0("HYPERLINK(\"",
                       "https://www.nice.org.uk/guidance/", guidance_number,
-                      "\", \"", guidance_info[[1]], "\")"))
+                      "\", \"", guidance_info[1], "\")"))
     
     # Formula to create a hyperlink the the tools and resources tab
     tools_hyperlink <- tibble(
@@ -126,10 +144,10 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     # Set up the formulas to drop into the 'Data totals' tab
     # These are set up to adjust the formula to the correct number of recommendations
     datatotal_formulas <- tibble(
-        formula = c(paste0("=SUMPRODUCT(COUNTIF('Data sheet'!C3:C", 
+        formula = c(paste0("=SUMPRODUCT(COUNTIF('Data sheet'!D3:D", 
                            nrow(guidance_content)+2, ",{\"Yes\",\"Partial\"}))"),
-                    paste0("=COUNTIF('Data sheet'!E3:E", nrow(guidance_content)+2, ",\"Yes\")"),
-                    paste0("=COUNTIF('Data sheet'!E3:E", nrow(guidance_content)+2, ",\"Partial\")")))
+                    paste0("=COUNTIF('Data sheet'!F3:F", nrow(guidance_content)+2, ",\"Yes\")"),
+                    paste0("=COUNTIF('Data sheet'!F3:F", nrow(guidance_content)+2, ",\"Partial\")")))
     
     # These need to be converted to a class of formula so that excel recognizes them
     class(guidance_hyperlink$link) <- "formula"
@@ -137,101 +155,109 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     class(rights_hyperlink$link) <- "formula"
     class(datatotal_formulas$formula) <- "formula"
     
+    
     ### Load the template and drop in all of the relevant content ###
     
     wb <- loadWorkbook("files/input_files/BAT_template.xlsx")
     
-    writeData(wb, sheet = "Introduction", 
-              intro_title, startRow = 1, startCol = 1, colNames = FALSE)
+    writeData(wb, sheet = "Introduction", intro_title, 
+              startRow = 1, startCol = 1, colNames = FALSE)
     
-    writeData(wb, sheet = "Introduction", 
-              intro_published_date, startRow = 2, startCol = 1, colNames = FALSE)
+    writeData(wb, sheet = "Introduction", intro_published_date, 
+              startRow = 2, startCol = 1, colNames = FALSE)
     
-    writeData(wb, sheet = "Introduction", 
-              guidance_hyperlink, startRow = 5, startCol = 1, colNames = FALSE)
+    writeData(wb, sheet = "Introduction", guidance_hyperlink, 
+              startRow = 5, startCol = 1, colNames = FALSE)
     
-    writeData(wb, sheet = "Introduction", 
-              tools_hyperlink, startRow = 10, startCol = 1, colNames = FALSE)
+    writeData(wb, sheet = "Introduction", tools_hyperlink, 
+              startRow = 10, startCol = 1, colNames = FALSE)
     
-    writeData(wb, sheet = "Introduction", 
-              rights_hyperlink, startRow = 12, startCol = 1, colNames = FALSE)
+    writeData(wb, sheet = "Introduction", rights_hyperlink,
+              startRow = 12, startCol = 1, colNames = FALSE)
     
-    writeData(wb, sheet = "Data sheet", 
-              intro_title, startRow = 1, startCol = 1, colNames = FALSE)
+    writeData(wb, sheet = "Data sheet", intro_title, 
+              startRow = 1, startCol = 1, colNames = FALSE)
     
-    writeData(wb, sheet = "Data sheet", 
-              guidance_content, startRow = 3, startCol = 1, colNames = FALSE)
+    writeData(wb, sheet = "Data sheet", guidance_content, 
+              startRow = 3, startCol = 1, colNames = FALSE)
     
-    writeData(wb, sheet = "Data sheet totals", 
-              datatotal_formulas, startRow = 1, startCol = 2, colNames = FALSE)
+    writeData(wb, sheet = "Data sheet totals", datatotal_formulas,
+              startRow = 1, startCol = 2, colNames = FALSE)
     
+    # We can now delete all the labels (e.g. heading, text etc. )
     deleteData(wb, sheet = "Data sheet", 
-               cols = 2, rows = str_which(guidance_content$rec_number, "Heading|Subheading|Text")+2, gridExpand = TRUE)
+               cols = 2, rows = str_which(guidance_content$rec_number, "Heading|Subheading|Subsubheading|Text")+2, 
+               gridExpand = TRUE)
     
     # Add and style the update date as well if there is one
     if (length(guidance_info) == 3) {
         
-        writeData(wb, sheet = "Introduction", 
-                  intro_update_date, startRow = 3, startCol = 1, colNames = FALSE)
+        writeData(wb, sheet = "Introduction", intro_update_date, 
+                  startRow = 3, startCol = 1, colNames = FALSE)
         
-        addStyle(wb, sheet = "Introduction", 
-                 intro_date_style, rows = 3, cols = 1, stack = FALSE)
+        addStyle(wb, sheet = "Introduction", intro_date_style, 
+                 rows = 3, cols = 1, stack = FALSE)
     }
+    
     
     ### Apply all of the appropriate styles ###
     
-    addStyle(wb, sheet = "Introduction", 
-             intro_title_style, rows = 1, cols = 1, stack = FALSE)
+    addStyle(wb, sheet = "Introduction", intro_title_style, 
+             rows = 1, cols = 1, stack = FALSE)
     
-    addStyle(wb, sheet = "Introduction", 
-             intro_date_style, rows = 2, cols = 1, stack = FALSE)
+    addStyle(wb, sheet = "Introduction", intro_date_style, 
+             rows = 2, cols = 1, stack = FALSE)
     
-    addStyle(wb, sheet = "Introduction", 
-             hyperlink_style, rows = 5, cols = 1, stack = FALSE)
+    addStyle(wb, sheet = "Introduction", hyperlink_style, 
+             rows = 5, cols = 1, stack = FALSE)
     
-    addStyle(wb, sheet = "Introduction", 
-             hyperlink_style, rows = 10, cols = 1, stack = TRUE)
+    addStyle(wb, sheet = "Introduction", hyperlink_style, 
+             rows = 10, cols = 1, stack = TRUE)
     
-    addStyle(wb, sheet = "Introduction", 
-             hyperlink_style, rows = 12, cols = 1, stack = FALSE)
+    addStyle(wb, sheet = "Introduction", hyperlink_style, 
+             rows = 12, cols = 1, stack = FALSE)
     
-    addStyle(wb, sheet = "Data sheet", 
-             datasheet_title_style, rows = 1, cols = 1, stack = FALSE)
+    addStyle(wb, sheet = "Data sheet", datasheet_title_style, 
+             rows = 1, cols = 1, stack = FALSE)
     
-    addStyle(wb, sheet = "Data sheet", 
-             header_style, rows = str_which(guidance_content$rec_number, "Heading")+2, 
-             cols = 1:12, stack = FALSE, gridExpand = TRUE)
+    addStyle(wb, sheet = "Data sheet", header_style, 
+             rows = str_which(guidance_content$rec_number, "Heading|Subsubheading")+2, 
+             cols = 1:13, stack = FALSE, gridExpand = TRUE)
     
-    addStyle(wb, sheet = "Data sheet", 
-             subheader_style, rows = str_which(guidance_content$rec_number, "Subheading")+2, 
-             cols = 1:12, stack = FALSE, gridExpand = TRUE)
+    addStyle(wb, sheet = "Data sheet", subheader_style, 
+             rows = str_which(guidance_content$rec_number, "Subheading")+2, 
+             cols = 1:13, stack = FALSE, gridExpand = TRUE)
     
-    addStyle(wb, sheet = "Data sheet", 
-             text_style, rows = str_which(guidance_content$rec_number, "[:digit:]")+2, 
-             cols = 1:12, stack = FALSE, gridExpand = TRUE)
+    addStyle(wb, sheet = "Data sheet", text_style, 
+             rows = str_which(guidance_content$rec_number, "[:digit:]")+2, 
+             cols = 1:13, stack = FALSE, gridExpand = TRUE)
     
-    addStyle(wb, sheet = "Data sheet", 
-             highlight_style, rows = which(guidance_content$rec_number == "Text")+2, 
-             cols = 1:12, stack = FALSE, gridExpand = TRUE)
+    addStyle(wb, sheet = "Data sheet", highlight_style, 
+             rows = which(guidance_content$rec_number == "Text")+2, 
+             cols = 1:13, stack = FALSE, gridExpand = TRUE)
     
-    addStyle(wb, sheet = "Data sheet", 
-             border_style, rows = str_which(guidance_content$rec_number, "[:digit:]|Text")+2, 
-             cols = 1:12, stack = TRUE, gridExpand = TRUE)
+    addStyle(wb, sheet = "Data sheet", border_style, 
+             rows = str_which(guidance_content$rec_number, "[:digit:]|Text")+2, 
+             cols = 1:13, stack = TRUE, gridExpand = TRUE)
+    
     
     ### Add in the drop downs and conditional formatting ###
-    # the datavalidation arguments will show warnings as type list is used (known issue)
+    # the dataValidation arguments will show warnings as type list is used (known issue)
     
+    # Yes/No/partial drop downs in column D and F
     dataValidation(wb, sheet = "Data sheet", 
-                   rows = str_which(guidance_content$rec_number, "[:digit:]")+2, cols = c(3,5), 
+                   rows = str_which(guidance_content$rec_number, "[:digit:]")+2, cols = c(4,6), 
                    type = "list", value = "'Dropdowns'!$A$1:$A$3")
     
+    # Yes/No drop downs in column H
     dataValidation(wb, sheet = "Data sheet", 
-                   rows = str_which(guidance_content$rec_number, "[:digit:]")+2, cols = 7, 
+                   rows = str_which(guidance_content$rec_number, "[:digit:]")+2, cols = 8, 
                    type = "list", value = "'Dropdowns'!$A$1:$A$2")
     
+    #  Set up conditional formatting to grey out row when rec is not relevant (No selected in col D)
     conditionalFormatting(wb, sheet = "Data sheet", 
-                          rows = str_which(guidance_content$rec_number, "[:digit:]")+2, cols = 4:11, 
-                          rule = '$C4="No"', style = createStyle(bgFill = "#BFBFBF")) 
+                          rows = str_which(guidance_content$rec_number, "[:digit:]")+2, cols = 5:12, 
+                          rule = '$D4="No"', style = createStyle(bgFill = "#808080")) 
     
     ### Return the complete BAT ###
     
