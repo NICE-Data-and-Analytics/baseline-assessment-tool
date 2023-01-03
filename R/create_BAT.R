@@ -114,7 +114,8 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     # were in a single tibble - no idea why though.
     
     intro_title <- paste0("Baseline assessment tool for ", 
-                          guidance_info[1],
+                          str_to_lower(str_sub(guidance_info[1], 1, 1)),
+                          str_sub(guidance_info[1], 2),
                           " (", guidance_number, ")")
     
     intro_published_date <- paste0("Published: ", guidance_info[2])
