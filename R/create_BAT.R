@@ -6,9 +6,9 @@ library(officer)
 
 # Testing section ---------------------------------------------------------
 
-# doc <- read_docx("files/test_files/NG122 Guideline 20220922.docx")
+# doc <- read_docx("files/test_files/NG228 Guideline_for prep.docx")
 # 
-# guidance_number <- "NG122"
+# guidance_number <- "NG288"
 # guidance_info <- scrape_title_and_dates(doc)
 # guidance_content <- scrape_docx(doc)
 # 
@@ -257,7 +257,7 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     #  Set up conditional formatting to grey out row when rec is not relevant (No selected in col D)
     conditionalFormatting(wb, sheet = "Data sheet", 
                           rows = str_which(guidance_content$rec_number, "[:digit:]")+2, cols = 5:12, 
-                          rule = '$D4="No"', style = createStyle(bgFill = "#808080")) 
+                          rule = '$D5="No"', style = createStyle(bgFill = "#808080")) 
     
     ### Return the complete BAT ###
     
