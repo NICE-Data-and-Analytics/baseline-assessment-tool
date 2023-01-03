@@ -238,7 +238,7 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
              cols = 1:13, stack = FALSE, gridExpand = TRUE)
     
     addStyle(wb, sheet = "Data sheet", border_style, 
-             rows = str_which(guidance_content$rec_number, "[:digit:]|Text")+2, 
+             rows = str_which(guidance_content$rec_number, "Heading|Subheading|Subsubheading", negate = TRUE)+2, 
              cols = 1:13, stack = TRUE, gridExpand = TRUE)
     
     
