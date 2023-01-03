@@ -229,8 +229,11 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
              rows = str_which(guidance_content$rec_number, "Subheading")+2, 
              cols = 1:13, stack = FALSE, gridExpand = TRUE)
     
+        ## Row indices for recs
+        rec_indices <- str_which(guidance_content$rec_number, "Heading|Subheading|Subsubheading|Text", negate = TRUE)+2
+    
     addStyle(wb, sheet = "Data sheet", text_style, 
-             rows = str_which(guidance_content$rec_number, "Heading|Subheading|Subsubheading|Text", negate = TRUE)+2, 
+             rows = rec_indices, 
              cols = 1:13, stack = FALSE, gridExpand = TRUE)
     
     addStyle(wb, sheet = "Data sheet", highlight_style, 
@@ -247,12 +250,12 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     
     # Yes/No/partial drop downs in column D and F
     dataValidation(wb, sheet = "Data sheet", 
-                   rows = str_which(guidance_content$rec_number, "[:digit:]")+2, cols = c(4,6), 
+                   rows = rec_indices, cols = c(4,6), 
                    type = "list", value = "'Dropdowns'!$A$1:$A$3")
     
     # Yes/No drop downs in column H
     dataValidation(wb, sheet = "Data sheet", 
-                   rows = str_which(guidance_content$rec_number, "[:digit:]")+2, cols = 8, 
+                   rows = rec_indices, cols = 8, 
                    type = "list", value = "'Dropdowns'!$A$1:$A$2")
     
     #  Set up conditional formatting to grey out row when rec is not relevant (No selected in col D)
