@@ -126,29 +126,29 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     
     # Formula to create a hyperlink to the guidance
     guidance_hyperlink <- tibble(
-        link = paste0("HYPERLINK(\"",
-                      "https://www.nice.org.uk/guidance/", guidance_number,
-                      "\", \"", guidance_info[1], "\")"))
+        link = paste0('HYPERLINK(\"',
+                      'https://www.nice.org.uk/guidance/', guidance_number,
+                      '\", \"', guidance_info[1], '\")'))
     
     # Formula to create a hyperlink the the tools and resources tab
     tools_hyperlink <- tibble(
-        link = paste0("HYPERLINK(\"",
-                      "https://www.nice.org.uk/guidance/", guidance_number, "/resources",
-                      "\", \"Tools and resources\")"))
+        link = paste0('HYPERLINK(\"',
+                      'https://www.nice.org.uk/guidance/', guidance_number, '/resources',
+                      '\", \"Tools and resources\")'))
     
     # Formula to create a hyperlink the the Notice of Rights
     rights_hyperlink <- tibble(
-        link = paste0("HYPERLINK(\"",
-                      "https://www.nice.org.uk/terms-and-conditions#notice-of-rights",
-                      "\", \"Subject to Notice of rights\")"))
+        link = paste0('HYPERLINK(\"',
+                      'https://www.nice.org.uk/terms-and-conditions#notice-of-rights',
+                      '\", \"Subject to Notice of rights\")'))
     
     # Set up the formulas to drop into the 'Data totals' tab
     # These are set up to adjust the formula to the correct number of recommendations
     datatotal_formulas <- tibble(
         formula = c(paste0("=SUMPRODUCT(COUNTIF('Data sheet'!D3:D", 
-                           nrow(guidance_content)+2, ",{\"Yes\",\"Partial\"}))"),
-                    paste0("=COUNTIF('Data sheet'!F3:F", nrow(guidance_content)+2, ",\"Yes\")"),
-                    paste0("=COUNTIF('Data sheet'!F3:F", nrow(guidance_content)+2, ",\"Partial\")")))
+                           nrow(guidance_content)+2, ',{\"Yes\",\"Partial\"}))'),
+                    paste0("=COUNTIF('Data sheet'!F3:F", nrow(guidance_content)+2, ',\"Yes\")'),
+                    paste0("=COUNTIF('Data sheet'!F3:F", nrow(guidance_content)+2, ',\"Partial\")')))
     
     # These need to be converted to a class of formula so that excel recognizes them
     class(guidance_hyperlink$link) <- "formula"
