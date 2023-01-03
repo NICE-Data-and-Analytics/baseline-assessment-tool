@@ -260,8 +260,8 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     
     #  Set up conditional formatting to grey out row when rec is not relevant (No selected in col D)
     conditionalFormatting(wb, sheet = "Data sheet", 
-                          rows = str_which(guidance_content$rec_number, "[:digit:]")+2, cols = 5:12, 
-                          rule = '$D5="No"', style = createStyle(bgFill = "#808080")) 
+                          rows = rec_indices, cols = 5:12, 
+                          rule = '$D4=="No"', style = createStyle(bgFill = "#808080")) 
     
     ### Return the complete BAT ###
     
