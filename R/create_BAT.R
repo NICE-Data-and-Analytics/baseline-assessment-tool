@@ -114,7 +114,8 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     # were in a single tibble - no idea why though.
     
     intro_title <- paste0("Baseline assessment tool for ", 
-                          guidance_info[1],
+                          str_to_lower(str_sub(guidance_info[1], 1, 1)),
+                          str_sub(guidance_info[1], 2),
                           " (", guidance_number, ")")
     
     intro_published_date <- paste0("Published: ", guidance_info[2])
@@ -125,29 +126,29 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     
     # Formula to create a hyperlink to the guidance
     guidance_hyperlink <- tibble(
-        link = paste0("HYPERLINK(\"",
-                      "https://www.nice.org.uk/guidance/", guidance_number,
-                      "\", \"", guidance_info[1], "\")"))
+        link = paste0('HYPERLINK(\"',
+                      'https://www.nice.org.uk/guidance/', guidance_number,
+                      '\", \"', guidance_info[1], '\")'))
     
     # Formula to create a hyperlink the the tools and resources tab
     tools_hyperlink <- tibble(
-        link = paste0("HYPERLINK(\"",
-                      "https://www.nice.org.uk/guidance/", guidance_number, "/resources",
-                      "\", \"Tools and resources\")"))
+        link = paste0('HYPERLINK(\"',
+                      'https://www.nice.org.uk/guidance/', guidance_number, '/resources',
+                      '\", \"Tools and resources\")'))
     
     # Formula to create a hyperlink the the Notice of Rights
     rights_hyperlink <- tibble(
-        link = paste0("HYPERLINK(\"",
-                      "https://www.nice.org.uk/terms-and-conditions#notice-of-rights",
-                      "\", \"Subject to Notice of rights\")"))
+        link = paste0('HYPERLINK(\"',
+                      'https://www.nice.org.uk/terms-and-conditions#notice-of-rights',
+                      '\", \"Subject to Notice of rights\")'))
     
     # Set up the formulas to drop into the 'Data totals' tab
     # These are set up to adjust the formula to the correct number of recommendations
     datatotal_formulas <- tibble(
         formula = c(paste0("=SUMPRODUCT(COUNTIF('Data sheet'!D3:D", 
-                           nrow(guidance_content)+2, ",{\"Yes\",\"Partial\"}))"),
-                    paste0("=COUNTIF('Data sheet'!F3:F", nrow(guidance_content)+2, ",\"Yes\")"),
-                    paste0("=COUNTIF('Data sheet'!F3:F", nrow(guidance_content)+2, ",\"Partial\")")))
+                           nrow(guidance_content)+2, ',{\"Yes\",\"Partial\"}))'),
+                    paste0("=COUNTIF('Data sheet'!F3:F", nrow(guidance_content)+2, ',\"Yes\")'),
+                    paste0("=COUNTIF('Data sheet'!F3:F", nrow(guidance_content)+2, ',\"Partial\")')))
     
     # These need to be converted to a class of formula so that excel recognizes them
     class(guidance_hyperlink$link) <- "formula"
@@ -228,8 +229,11 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
              rows = str_which(guidance_content$rec_number, "Subheading")+2, 
              cols = 1:13, stack = FALSE, gridExpand = TRUE)
     
+        ## Row indices for recs
+        rec_indices <- str_which(guidance_content$rec_number, "Heading|Subheading|Subsubheading|Text", negate = TRUE)+2
+    
     addStyle(wb, sheet = "Data sheet", text_style, 
-             rows = str_which(guidance_content$rec_number, "[:digit:]")+2, 
+             rows = rec_indices, 
              cols = 1:13, stack = FALSE, gridExpand = TRUE)
     
     addStyle(wb, sheet = "Data sheet", highlight_style, 
@@ -237,7 +241,7 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
              cols = 1:13, stack = FALSE, gridExpand = TRUE)
     
     addStyle(wb, sheet = "Data sheet", border_style, 
-             rows = str_which(guidance_content$rec_number, "[:digit:]|Text")+2, 
+             rows = str_which(guidance_content$rec_number, "Heading|Subheading|Subsubheading", negate = TRUE)+2, 
              cols = 1:13, stack = TRUE, gridExpand = TRUE)
     
     
@@ -246,18 +250,18 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     
     # Yes/No/partial drop downs in column D and F
     dataValidation(wb, sheet = "Data sheet", 
-                   rows = str_which(guidance_content$rec_number, "[:digit:]")+2, cols = c(4,6), 
+                   rows = rec_indices, cols = c(4,6), 
                    type = "list", value = "'Dropdowns'!$A$1:$A$3")
     
     # Yes/No drop downs in column H
     dataValidation(wb, sheet = "Data sheet", 
-                   rows = str_which(guidance_content$rec_number, "[:digit:]")+2, cols = 8, 
+                   rows = rec_indices, cols = 8, 
                    type = "list", value = "'Dropdowns'!$A$1:$A$2")
     
     #  Set up conditional formatting to grey out row when rec is not relevant (No selected in col D)
     conditionalFormatting(wb, sheet = "Data sheet", 
-                          rows = str_which(guidance_content$rec_number, "[:digit:]")+2, cols = 5:12, 
-                          rule = '$D5="No"', style = createStyle(bgFill = "#808080")) 
+                          rows = rec_indices, cols = 5:12, 
+                          rule = '$D4=="No"', style = createStyle(bgFill = "#808080")) 
     
     ### Return the complete BAT ###
     
