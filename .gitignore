@@ -3,7 +3,9 @@
 .RData
 .Ruserdata
 *.html
+*.docx
 data/
 output/
 rsconnect/
 scrape_docx/rsconnect/
+files/test_files

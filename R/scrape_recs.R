@@ -129,6 +129,6 @@ section_id <- section_id %>%
     unnest()
 
 
-html_children(section_recs)
-xml_structure(section_recs)
+# html_children(section_recs)
+# xml_structure(section_recs)
 # xml2::as_list(section_recs)
