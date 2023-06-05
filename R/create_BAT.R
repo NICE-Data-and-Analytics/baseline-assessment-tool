@@ -124,6 +124,9 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
         intro_update_date <- paste0("Updated: ", guidance_info[3])
     }
     
+    # Create copyright statement
+    copyright_statement <- paste0("© NICE ", lubridate::year(Sys.Date()), ". All rights reserved.")
+    
     # Formula to create a hyperlink to the guidance
     guidance_hyperlink <- tibble(
         link = paste0('HYPERLINK(\"',
@@ -173,8 +176,11 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     writeData(wb, sheet = "Introduction", tools_hyperlink, 
               startRow = 10, startCol = 1, colNames = FALSE)
     
-    writeData(wb, sheet = "Introduction", rights_hyperlink,
+    writeData(wb, sheet = "Introduction", copyright_statement,
               startRow = 12, startCol = 1, colNames = FALSE)
+    
+    writeData(wb, sheet = "Introduction", rights_hyperlink,
+              startRow = 13, startCol = 1, colNames = FALSE)
     
     writeData(wb, sheet = "Data sheet", intro_title, 
               startRow = 1, startCol = 1, colNames = FALSE)
@@ -215,8 +221,11 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     addStyle(wb, sheet = "Introduction", hyperlink_style, 
              rows = 10, cols = 1, stack = TRUE)
     
-    addStyle(wb, sheet = "Introduction", hyperlink_style, 
+    addStyle(wb, sheet = "Introduction", text_style, 
              rows = 12, cols = 1, stack = FALSE)
+    
+    addStyle(wb, sheet = "Introduction", hyperlink_style, 
+             rows = 13, cols = 1, stack = FALSE)
     
     addStyle(wb, sheet = "Data sheet", datasheet_title_style, 
              rows = 1, cols = 1, stack = FALSE)
