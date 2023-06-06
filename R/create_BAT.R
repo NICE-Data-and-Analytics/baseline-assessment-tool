@@ -259,7 +259,11 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     
     # Yes/No/partial drop downs in column D and F
     dataValidation(wb, sheet = "Data sheet", 
-                   rows = rec_indices, cols = c(4,6), 
+                   rows = rec_indices, cols = 4, 
+                   type = "list", value = "'Dropdowns'!$A$1:$A$3")
+    
+    dataValidation(wb, sheet = "Data sheet", 
+                   rows = rec_indices, cols = 6, 
                    type = "list", value = "'Dropdowns'!$A$1:$A$3")
     
     # Yes/No drop downs in column H
