@@ -231,11 +231,11 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
              rows = 1, cols = 1, stack = FALSE)
     
     addStyle(wb, sheet = "Data sheet", header_style, 
-             rows = str_which(guidance_content$rec_number, "Heading|Subsubheading")+2, 
+             rows = str_which(guidance_content$rec_number, "Heading")+2, 
              cols = 1:13, stack = FALSE, gridExpand = TRUE)
     
     addStyle(wb, sheet = "Data sheet", subheader_style, 
-             rows = str_which(guidance_content$rec_number, "Subheading")+2, 
+             rows = str_which(guidance_content$rec_number, "Subheading|Subsubheading")+2, 
              cols = 1:13, stack = FALSE, gridExpand = TRUE)
     
         ## Row indices for recs
