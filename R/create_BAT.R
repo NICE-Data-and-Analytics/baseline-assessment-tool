@@ -280,5 +280,3 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     
     return(wb)
 }
-
-

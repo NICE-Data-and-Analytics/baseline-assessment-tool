@@ -33,7 +33,7 @@ scrape_docx <- function(doc) {
         # docx_summary() function splits out the last bullet point as a different style, for some reason, e.g. "Bullet indent 1 last"
         # Some bullet indent styles also named differently, e.g. "Bullet indent 1 shaded"
         # Unify styles
-        mutate(style_name = case_when(str_starts(style_name, "Bullet indent 1") ~ "Bullet indent 1",
+        mutate(style_name = case_when(str_starts(style_name, "Bullet indent 1") | str_starts(style_name, "Bullet left") ~ "Bullet indent 1",
                                       str_starts(style_name, "Bullet indent 2") ~ "Bullet indent 2",
                                       # For updates, some recs given different style
                                       style_name == "Recommendation not updated" ~ "Numbered level 3 text",
