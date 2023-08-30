@@ -124,6 +124,9 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
         intro_update_date <- paste0("Updated: ", guidance_info[3])
     }
     
+    # Create copyright statement
+    copyright_statement <- paste0("© NICE ", lubridate::year(Sys.Date()), ". All rights reserved.")
+    
     # Formula to create a hyperlink to the guidance
     guidance_hyperlink <- tibble(
         link = paste0('HYPERLINK(\"',
@@ -173,8 +176,11 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     writeData(wb, sheet = "Introduction", tools_hyperlink, 
               startRow = 10, startCol = 1, colNames = FALSE)
     
-    writeData(wb, sheet = "Introduction", rights_hyperlink,
+    writeData(wb, sheet = "Introduction", copyright_statement,
               startRow = 12, startCol = 1, colNames = FALSE)
+    
+    writeData(wb, sheet = "Introduction", rights_hyperlink,
+              startRow = 13, startCol = 1, colNames = FALSE)
     
     writeData(wb, sheet = "Data sheet", intro_title, 
               startRow = 1, startCol = 1, colNames = FALSE)
@@ -215,18 +221,21 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     addStyle(wb, sheet = "Introduction", hyperlink_style, 
              rows = 10, cols = 1, stack = TRUE)
     
-    addStyle(wb, sheet = "Introduction", hyperlink_style, 
+    addStyle(wb, sheet = "Introduction", text_style, 
              rows = 12, cols = 1, stack = FALSE)
+    
+    addStyle(wb, sheet = "Introduction", hyperlink_style, 
+             rows = 13, cols = 1, stack = FALSE)
     
     addStyle(wb, sheet = "Data sheet", datasheet_title_style, 
              rows = 1, cols = 1, stack = FALSE)
     
     addStyle(wb, sheet = "Data sheet", header_style, 
-             rows = str_which(guidance_content$rec_number, "Heading|Subsubheading")+2, 
+             rows = str_which(guidance_content$rec_number, "Heading")+2, 
              cols = 1:13, stack = FALSE, gridExpand = TRUE)
     
     addStyle(wb, sheet = "Data sheet", subheader_style, 
-             rows = str_which(guidance_content$rec_number, "Subheading")+2, 
+             rows = str_which(guidance_content$rec_number, "Subheading|Subsubheading")+2, 
              cols = 1:13, stack = FALSE, gridExpand = TRUE)
     
         ## Row indices for recs
@@ -250,7 +259,11 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     
     # Yes/No/partial drop downs in column D and F
     dataValidation(wb, sheet = "Data sheet", 
-                   rows = rec_indices, cols = c(4,6), 
+                   rows = rec_indices, cols = 4, 
+                   type = "list", value = "'Dropdowns'!$A$1:$A$3")
+    
+    dataValidation(wb, sheet = "Data sheet", 
+                   rows = rec_indices, cols = 6, 
                    type = "list", value = "'Dropdowns'!$A$1:$A$3")
     
     # Yes/No drop downs in column H
@@ -267,5 +280,3 @@ create_BAT <- function(guidance_number, guidance_info, guidance_content){
     
     return(wb)
 }
-
-

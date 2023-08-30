@@ -9,3 +9,4 @@ output/
 rsconnect/
 scrape_docx/rsconnect/
 files/test_files
+.Renviron
