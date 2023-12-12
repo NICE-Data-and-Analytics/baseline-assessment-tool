@@ -54,7 +54,7 @@ scrape_docx <- function(doc) {
         # Number the recommendations, e.g. 1.1.5
         # All the recommendation paragraphs are in the 'Numbered level 3 text' style
         # Bulletpoints are in separate rows for now under a different style name
-        mutate(rec_number = if_else(style_name == "Numbered level 3 text", 
+        mutate(rec_number = if_else(str_detect(style_name, "Numbered level 3|4 text"), 
                                     str_c(section, 1:n(), sep = "."),
                                     NA_character_)) %>% 
         ungroup() %>%
@@ -63,7 +63,7 @@ scrape_docx <- function(doc) {
         # For non-recommendation text, based on the text style, specify heading, subheading etc in the rec number
         # For easy identification of non-rec text when copy and pasting
         mutate(rec_number = case_when(style_name == 'Numbered heading 2' ~ "Heading",
-                                      style_name == 'heading 3' ~ "Subheading",
+                                      str_detect(style_name, 'heading 3') ~ "Subheading",
                                       style_name == 'heading 4' ~ "Subsubheading",
                                       style_name == 'NICE normal' | str_starts(style_name, "Bullet left") ~ "Text",
                                       style_name == "Panel (Primary)" ~ "Panel",
@@ -77,6 +77,7 @@ scrape_docx <- function(doc) {
         # Merge the bullet points under each recommendation (which are currently in separate rows) with the recommendation 
         mutate(text = if_else(style_name %in% c("Bullet indent 1", 
                                                 "Numbered level 3 text", 
+                                                "Numbered level 4 text",
                                                 "Bullet indent 2",
                                                 # In some docs, this is the style for additional paragraphs of the rec below bullet points
                                                 "NICE normal indented"),
