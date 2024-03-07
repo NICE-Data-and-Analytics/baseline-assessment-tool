@@ -27,21 +27,22 @@ ui <- fluidPage(
                            "1. What is the guideline number?",
                            placeholder = "e.g. NG205 (To name output file.)"),
                  fileInput("file", 
-                           "2. Upload DOCX file with guideline", 
+                           "2. Upload DOCX file with guideline.", 
                            accept = "docx"),
-                 p("3. Download Excel spreadsheet with extracted recommendations"),
+                 p("3. Download populated BAT."),
                  disabled(
                      downloadButton("download",
                                 "Download file")
                  ),
                  br(),
                  br(),
-                 p("4. Copy and paste from downloaded spreadsheet into BAT template."),
+                 p("4. Check the BAT against the guideline DOCX. In particular:"),
                  tags$ul(
-                     tags$li("Check for errors in the extracted text"),
-                     tags$li("Check hyphenated words, e.g. 'omega-3' - the hyphen is often lost when pulled"),
-                     tags$li(HTML("Add <b>bold formatting</b> to the text as needed - formatting is not preserved in the extraction")),
-                     tags$li("Re-insert paragraph spacing (new line) for recommendations with multiple paragraphs (not bullet points) - currently merged into one big paragraph when pulled")
+                     tags$li("Check that all recommendations have been carried through."),
+                     tags$li("Check hyphenated words, e.g. 'omega-3' - the hyphen is often lost when pulled."),
+                     tags$li(HTML("Add <b>bold formatting</b> to the text as needed - formatting is not preserved in the extraction.")),
+                     tags$li("Remove any odd hyperlink text that was accidentally kept."),
+                     tags$li("Re-insert paragraph spacing (new line) for recommendations with multiple paragraphs (not bullet points) - currently merged into one big paragraph when pulled.")
                  )
         ),
         tabPanel("From website",
