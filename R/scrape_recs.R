@@ -126,7 +126,7 @@ section_id <- section_id %>%
                                                       mutate(number = map_chr(id, rec_number_fn, rec_html),
                                                              chunk = map(id, chunk_fn, rec_html) %>% 
                                                                  map(. %>% map(format_fn))))))) %>% 
-    unnest()
+    unnest(cols = c(subsection))
 
 
 # html_children(section_recs)
